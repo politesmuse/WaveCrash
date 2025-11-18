@@ -1,16 +1,25 @@
 shader_type canvas_item;
 
-// Audio-reactive inputs
-uniform float u_bass : hint_range(0.0, 5.0) = 0.0;
-uniform float u_mids : hint_range(0.0, 5.0) = 0.0;
+// Audio-reactive inputs (set from GDScript)
+uniform float u_bass  : hint_range(0.0, 5.0) = 0.0;
+uniform float u_mids  : hint_range(0.0, 5.0) = 0.0;
 uniform float u_highs : hint_range(0.0, 5.0) = 0.0;
 
-uniform float shimmer_strength : hint_range(0.0, 1.0, 0.01) = 0.15;
-
-uniform vec4 base_color : source_color = vec4(0.1, 0.2, 0.6, 1.0);
+// Color controls
+uniform vec4 base_color      : source_color = vec4(0.1, 0.2, 0.6, 1.0);
 uniform vec4 highlight_color : source_color = vec4(0.6, 0.8, 1.2, 1.0);
 
-// Simple FBM noise for shimmer
+// Shimmer controls (already in your setup, kept simple here)
+uniform float shimmer_strength : hint_range(0.0, 1.0, 0.01) = 0.15;
+
+// 🔹 New: normal / spec controls (these show as sliders)
+uniform float normal_distort_base  : hint_range(0.0, 2.0, 0.01) = 0.4;
+uniform float mids_normal_boost    : hint_range(0.0, 3.0, 0.01) = 1.0;
+uniform float highs_normal_boost   : hint_range(0.0, 3.0, 0.01) = 1.5;
+uniform float specular_strength    : hint_range(0.0, 2.0, 0.01) = 0.7;
+uniform float specular_sharpness   : hint_range(1.0, 64.0, 1.0) = 16.0;
+
+// Simple hash/noise for micro waves
 float hash(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -37,33 +46,69 @@ float fbm(vec2 p) {
     return v;
 }
 
+// Height field used for both shading & pseudo-normals
+float height_field(vec2 uv, float audio_scale) {
+    // Base broad wave motion (keep subtle; geometry already carries main shape)
+    float wave = sin(uv.x * 10.0 + TIME * (0.5 + u_bass * 1.5)) * 0.03;
+
+    // Micro-wave detail from noise, scaled by audio
+    float t = TIME * (0.5 + u_highs * 2.0);
+    float micro = fbm(uv * 6.0 + vec2(0.0, t)) * 0.04 * audio_scale;
+
+    return wave + micro;
+}
+
 void fragment() {
-    // Use screen-space UV so we don't depend on Polygon2D UVs
+    // Use screen UV so it matches the WaterMesh on screen
     vec2 suv = SCREEN_UV;
 
-    // Treat suv.y as "depth" into the water, suv.x across the segment
-    float wave_speed = 1.0 + u_bass * 2.0;
-    float wave_amp = 0.03 * (0.5 + u_bass * 1.5);
-    float wave_offset = sin(suv.x * 10.0 + TIME * wave_speed) * wave_amp;
-    suv.y += wave_offset;
+    // Audio factor that will drive normal distortion
+    float audio_scale =
+        normal_distort_base
+        + u_mids  * mids_normal_boost
+        + u_highs * highs_normal_boost;
 
-    // Shimmer from highs
-    float shimmer_time = TIME * (0.5 + u_highs * 3.0);
-    float n = fbm(suv * 4.0 + shimmer_time);
-    float shimmer = n * shimmer_strength * (0.3 + u_highs * 1.7);
+    // Base gradient color for depth
+    float depth_t = clamp(suv.y, 0.0, 1.0);
+    vec3 col = mix(base_color.rgb, highlight_color.rgb, depth_t);
 
-    // Color gradient from base to highlight based on suv.y
-    float t = clamp(suv.y, 0.0, 1.0);
-    vec3 col = mix(base_color.rgb, highlight_color.rgb, t) + shimmer;
+    // ─── Fake normal from height field ───────────────────────
+    // Sample a small neighborhood of the height field
+    float eps = 0.002;
+    float hC = height_field(suv, audio_scale);
+    float hR = height_field(suv + vec2(eps, 0.0), audio_scale);
+    float hL = height_field(suv - vec2(eps, 0.0), audio_scale);
+    float hU = height_field(suv + vec2(0.0, eps), audio_scale);
+    float hD = height_field(suv - vec2(0.0, eps), audio_scale);
 
-    // Foam band near crest (top of water)
-    float foam_center = 0.4;
-    float foam_width = 0.08;
-    float foam_band = smoothstep(foam_center - foam_width, foam_center + foam_width, 1.0 - suv.y);
-    foam_band *= (0.5 + u_mids * 0.5 + u_highs * 0.8);
+    // Approximate derivatives
+    float dx = hR - hL;
+    float dy = hU - hD;
 
-    vec3 foam_color = vec3(1.3, 1.3, 1.6);
-    col = mix(col, foam_color, foam_band);
+    // Build a pseudo-normal (z points "out of screen")
+    vec3 normal = normalize(vec3(-dx, -dy, 0.5));
+
+    // Fake light direction (from top-right-ish)
+    vec3 light_dir = normalize(vec3(0.4, -0.7, 0.6));
+
+    // Diffuse term
+    float ndotl = max(dot(normal, light_dir), 0.0);
+
+    // Specular term, sharper when highs are strong
+    vec3 view_dir = vec3(0.0, 0.0, 1.0);
+    vec3 half_vec = normalize(light_dir + view_dir);
+    float ndoth = max(dot(normal, half_vec), 0.0);
+    float shininess = specular_sharpness * (1.0 + u_highs * 1.5);
+    float spec = pow(ndoth, shininess) * specular_strength * (0.3 + u_highs);
+
+    // Apply lighting
+    col *= 0.4 + 0.6 * ndotl; // base diffuse
+    col += vec3(spec);
+
+    // Optional shimmer add from highs (kept mild now, you can push it later)
+    float shimmer = fbm(suv * 8.0 + vec2(TIME * 0.5, 0.0));
+    shimmer *= shimmer_strength * (0.3 + u_highs * 1.7);
+    col += shimmer * 0.4;
 
     COLOR = vec4(col, 1.0);
 }
