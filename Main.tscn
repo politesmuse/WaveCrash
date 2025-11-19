@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3 uid="uid://dxbnl7qt63tg0"]
+[gd_scene load_steps=29 format=3 uid="uid://dxbnl7qt63tg0"]
 
 [ext_resource type="Shader" uid="uid://djxsvwyh2rqbm" path="res://shaders/SkyShader.gdshader" id="1_03owx"]
 [ext_resource type="Script" uid="uid://c5tq6tgpx6d6j" path="res://scripts/WaterChain.gd" id="1_5vvyt"]
@@ -83,26 +83,42 @@ initial_velocity_max = 40.0
 gravity = Vector3(0, 200, 0)
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_5vvyt"]
+bounce = 0.05
 
 [sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_5vvyt"]
 size = Vector2(100, 50)
 
+[sub_resource type="CircleShape2D" id="CircleShape2D_5vvyt"]
+custom_solver_bias = 0.141
+radius = 16.5
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_5vvyt"]
 shader = ExtResource("6_c2ibq")
-shader_parameter/u_bass = 0.0
-shader_parameter/u_mids = 0.0
-shader_parameter/u_highs = 0.0
+shader_parameter/u_bass = 0.8970000426075
+shader_parameter/u_mids = 0.526000024985
+shader_parameter/u_highs = 0.4830000229425
 shader_parameter/base_color = Color(0.1, 0.2, 0.6, 1)
 shader_parameter/highlight_color = Color(0.6, 0.8, 1.2, 1)
 shader_parameter/shimmer_strength = 0.15
-shader_parameter/normal_distort_base = 0.4
+shader_parameter/normal_distort_base = 0.27999999374144
 shader_parameter/mids_normal_boost = 1.0
 shader_parameter/highs_normal_boost = 1.5
-shader_parameter/specular_strength = 0.7
-shader_parameter/specular_sharpness = 16.0
+shader_parameter/specular_strength = 0.41999999061216
+shader_parameter/specular_sharpness = 10.0
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_c6i3y"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_c2ibq"]
+size = Vector2(10, 2160)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_5vvyt"]
-size = Vector2(1153, 642)
+size = Vector2(12800, 10)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_c6i3y"]
+size = Vector2(12800, 10)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_j4qnp"]
+size = Vector2(10, 2160)
 
 [node name="MainRoot" type="Node2D"]
 
@@ -115,107 +131,102 @@ visible = false
 [node name="WaterChain" type="Node2D" parent="." node_paths=PackedStringArray("wave_controller")]
 visibility_layer = 2
 z_index = 5
-position = Vector2(485, 101)
+position = Vector2(640, 360)
 script = ExtResource("1_5vvyt")
-point_count = 150
-buoy_radius = 8.0
-buoy_mass = 1.5
+segment_width = 1280.0
+point_count = 640
+buoy_radius = 2.0
 wave_controller = NodePath("../WaveController")
-buoy_spring_strength = 2000.0
+buoy_spring_strength = 500.0
+buoy_damping = 20.0
+joint_stiffness = 5.0
 joint_damping = 5.0
 
 [node name="SkyParallax" type="Parallax2D" parent="."]
-visible = false
 z_index = -2
 scroll_scale = Vector2(0.2, 0.1)
-scroll_offset = Vector2(2524, -1096)
+scroll_offset = Vector2(2529, -1096)
 
 [node name="Sky" type="Sprite2D" parent="SkyParallax"]
 material = SubResource("ShaderMaterial_kjvhd")
-scale = Vector2(4, 4)
+position = Vector2(2560, 640)
+scale = Vector2(8, 3)
 texture = ExtResource("2_wkp8b")
 
 [node name="BackWavesParallax" type="Parallax2D" parent="."]
-visible = false
 z_index = -1
 scroll_scale = Vector2(0.4, 0.2)
 scroll_offset = Vector2(759, 635)
 
 [node name="BackWaves" type="Sprite2D" parent="BackWavesParallax"]
 material = SubResource("ShaderMaterial_5tuhn")
-position = Vector2(1764, 402)
-scale = Vector2(4, 2)
+position = Vector2(4330, 260)
+scale = Vector2(8, 1)
 texture = ExtResource("2_wkp8b")
 
 [node name="WaveController" type="Node2D" parent="."]
 script = ExtResource("4_wkp8b")
 water_line_y = 195.0
-base_amp = 14.0
+base_amp = 10.0
 base_freq = 0.31
-base_scroll_speed = 25.0
+base_scroll_speed = 0.0
 chop_scroll_speed = 70.0
 chop_amp = 5.0
-chop_freq = 1.5
+chop_freq = 1.0
 
 [node name="ForeGroundWaveManager" type="Node2D" parent="." node_paths=PackedStringArray("boat")]
 z_index = 1
-scale = Vector2(2.5, 0.5)
 script = ExtResource("5_c6i3y")
-boat = NodePath("")
+boat = NodePath("../Boat")
 
 [node name="WaveSegment1" type="Polygon2D" parent="ForeGroundWaveManager"]
 z_index = 3
 material = SubResource("ShaderMaterial_2gh4u")
 position = Vector2(585, 310)
-scale = Vector2(2.5, 0.5)
 skew = 0.08726646
 color = Color(1, 1, 1, 0.23200001)
 script = ExtResource("7_j4qnp")
+segment_width = 1600.0
 resolution = 256
-bottom_y = 1440.0
 
 [node name="WaveSegment4" type="Polygon2D" parent="ForeGroundWaveManager"]
 z_index = -1
 material = SubResource("ShaderMaterial_2gh4u")
 position = Vector2(589, 310)
-scale = Vector2(2, 0.5)
 skew = 0.08726646
 color = Color(1, 1, 1, 0.39800003)
 script = ExtResource("7_j4qnp")
+segment_width = 1600.0
 resolution = 256
-bottom_y = 1440.0
 
 [node name="WaveSegment2" type="Polygon2D" parent="ForeGroundWaveManager"]
 z_index = 2
 material = SubResource("ShaderMaterial_wkp8b")
 position = Vector2(585, 311)
-scale = Vector2(2.5, 0.5)
 skew = -0.10471976
 color = Color(1, 1, 1, 0.305)
 script = ExtResource("7_j4qnp")
+segment_width = 1600.0
 resolution = 256
-bottom_y = 1440.0
 
 [node name="WaveSegment3" type="Polygon2D" parent="ForeGroundWaveManager"]
 z_index = 1
 material = SubResource("ShaderMaterial_20pc6")
 position = Vector2(605, 311)
-scale = Vector2(2.5, 0.5)
 skew = 0.10471976
 color = Color(1, 1, 1, 0.136)
 script = ExtResource("7_j4qnp")
+segment_width = 1600.0
 resolution = 256
-bottom_y = 1440.0
 
 [node name="AudioStreamPlayer" type="AudioStreamPlayer2D" parent="."]
 
-[node name="UI" type="CanvasLayer" parent="." node_paths=PackedStringArray("music_player", "wave_controller", "boat")]
+[node name="UI" type="CanvasLayer" parent="." node_paths=PackedStringArray("music_player", "wave_controller")]
 offset = Vector2(200, 120)
 transform = Transform2D(1, 0, 0, 1, 200, 120)
 script = ExtResource("10_wkp8b")
 music_player = NodePath("../AudioStreamPlayer")
 wave_controller = NodePath("../WaveController")
-boat = NodePath("")
 
 [node name="Panel" type="Control" parent="UI"]
 modulate = Color(0.8548469, 0.92947316, 1, 0.5)
@@ -361,36 +372,65 @@ script = ExtResource("9_sc1dx")
 
 [node name="Boat" type="RigidBody2D" parent="."]
 light_mask = 2
-position = Vector2(446, 69)
+position = Vector2(640, 340)
+mass = 25.0
 physics_material_override = SubResource("PhysicsMaterial_5vvyt")
+inertia = 1.0
+lock_rotation = true
+linear_velocity = Vector2(5, 5)
+linear_damp_mode = 1
+angular_velocity = 0.034906585
+constant_force = Vector2(0, 1)
+constant_torque = 1.0
 script = ExtResource("8_fpfj3")
+move_force = 4000.0
+max_speed = 1000.0
+water_drag = 0.8
 
-[node name="Sprite2D" type="Sprite2D" parent="Boat"]
-position = Vector2(49, 0)
+[node name="BoatSprite" type="Sprite2D" parent="Boat"]
+position = Vector2(0, -10)
 texture = SubResource("PlaceholderTexture2D_5vvyt")
 
 [node name="BoatCollision" type="CollisionPolygon2D" parent="Boat"]
-position = Vector2(-52, -31)
-scale = Vector2(2, 2)
+visible = false
+position = Vector2(-50, -12)
 polygon = PackedVector2Array(0, 0, 100, 0, 75, 30, 25, 30)
+disabled = true
 
 [node name="Camera2D" type="Camera2D" parent="Boat"]
 z_index = 5
 position = Vector2(50, -114)
-zoom = Vector2(0.8, 0.8)
+
+[node name="Boat" type="CollisionShape2D" parent="Boat"]
+position = Vector2(0, -18)
+scale = Vector2(2, 2)
+shape = SubResource("CircleShape2D_5vvyt")
 
 [node name="WaterMesh" type="Polygon2D" parent="." node_paths=PackedStringArray("water_chain")]
+visible = false
 material = SubResource("ShaderMaterial_5vvyt")
+color = Color(1, 1, 1, 0)
 script = ExtResource("12_c6i3y")
 water_chain = NodePath("../WaterChain")
 
-[node name="Polygon2D" type="Polygon2D" parent="."]
-color = Color(1, 1, 1, 0)
-polygon = PackedVector2Array(0, 0, 1280, 0, 1280, 720, 0, 720)
+[node name="StaticBody2D" type="StaticBody2D" parent="."]
+disable_mode = 1
+physics_material_override = SubResource("PhysicsMaterial_c6i3y")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Polygon2D"]
-position = Vector2(578.5, 320)
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D"]
+position = Vector2(0, -360)
+shape = SubResource("RectangleShape2D_c2ibq")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="StaticBody2D"]
+position = Vector2(6400, 720)
 shape = SubResource("RectangleShape2D_5vvyt")
-one_way_collision = true
+
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="StaticBody2D"]
+position = Vector2(6400, -1440)
+shape = SubResource("RectangleShape2D_c6i3y")
+
+[node name="CollisionShape2D4" type="CollisionShape2D" parent="StaticBody2D"]
+position = Vector2(12800, -360)
+shape = SubResource("RectangleShape2D_j4qnp")
 
 [connection signal="pressed" from="UI/Panel/ChooseTrackCont/ChooseTrackButton" to="UI" method="_on_choose_track_button_pressed"]

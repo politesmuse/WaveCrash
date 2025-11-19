@@ -7,6 +7,7 @@ extends Node2D
 
 @export var buoy_mass: float = 1.0
 @export var wave_controller: Node2D
+@export var boat: Node2D  # NEW: boat to follow in X
 
 @export_category("Buoy Physics")
 @export var buoy_spring_strength: float = 1200.0
@@ -17,7 +18,7 @@ extends Node2D
 @export var joint_damping: float = 4.0
 
 var _buoys: Array[RigidBody2D] = []
-var _buoy_target_x: Array[float] = []
+var _buoy_offset_x: Array[float] = []  # offsets from chain center in X
 
 
 # ----- EDITOR PREVIEW -----
@@ -76,9 +77,10 @@ func _ready() -> void:
 	_spawn_buoys()
 	_spawn_joints()
 
+
 func _spawn_buoys() -> void:
 	_buoys.clear()
-	_buoy_target_x.clear()
+	_buoy_offset_x.clear()
 
 	if point_count < 2:
 		push_warning("WaterChain: point_count < 2, cannot spawn buoys.")
@@ -87,7 +89,13 @@ func _spawn_buoys() -> void:
 	var half_width: float = segment_width * 0.5
 	var step: float = segment_width / float(point_count - 1)
 
+	# Center X of the chain at spawn: boat if available, else this node
+	var center_x: float = boat.global_position.x if boat != null else global_position.x
+
 	for i in range(point_count):
+		var offset_x: float = -half_width + step * float(i)
+		var world_x: float = center_x + offset_x
+
 		var b := RigidBody2D.new()
 		b.name = "Buoy_%d" % i
 		b.mass = buoy_mass
@@ -100,16 +108,14 @@ func _spawn_buoys() -> void:
 		b.add_child(shape_node)
 		add_child(b)
 
-		var x_local: float = -half_width + step * float(i)
-		var world_x: float = global_position.x + x_local
-
-		# Place them along this node's y initially
+		# Place along this node's Y initially
 		b.global_position = Vector2(world_x, global_position.y)
 
 		_buoys.append(b)
-		_buoy_target_x.append(world_x)
+		_buoy_offset_x.append(offset_x)
 
 	print("[WaterChain] Spawned %d buoys." % _buoys.size())
+
 
 func _spawn_joints() -> void:
 	if _buoys.size() < 2:
@@ -132,6 +138,7 @@ func _spawn_joints() -> void:
 
 	print("[WaterChain] Spawned %d joints." % (_buoys.size() - 1))
 
+
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
@@ -144,11 +151,15 @@ func _physics_process(delta: float) -> void:
 	if count == 0:
 		return
 
+	# Chain center X follows the boat, or this node if no boat assigned
+	var center_x: float = boat.global_position.x if boat != null else global_position.x
+
 	for i in range(count):
 		var b: RigidBody2D = _buoys[i]
-		var target_x: float = _buoy_target_x[i]
+		var offset_x: float = _buoy_offset_x[i]
+		var target_x: float = center_x + offset_x
 
-		# Sample analytic wave at buoy's X (fixed)
+		# Sample wave at the buoy's X
 		var world_x: float = target_x
 		var target_y: float = wave_controller.get_wave_height_at_x(world_x)
 		var dy: float = target_y - b.global_position.y
@@ -160,15 +171,16 @@ func _physics_process(delta: float) -> void:
 
 		b.apply_central_force(Vector2(0.0, total_force_y))
 
-		# 🔒 Lock X so buoys can't slide/fly sideways
+		# Lock X to the moving chain center + offset
 		var pos: Vector2 = b.global_position
 		pos.x = target_x
 		b.global_position = pos
 
-		# Kill horizontal velocity so forces don't accumulate sideways
+		# Zero horizontal velocity to avoid side drift
 		var vel: Vector2 = b.linear_velocity
 		vel.x = 0.0
 		b.linear_velocity = vel
+
 
 func get_buoys() -> Array[RigidBody2D]:
 	return _buoys

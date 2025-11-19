@@ -12,9 +12,9 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	var input_dir: float = 0.0
 	if Input.is_action_pressed("ui_right"):
-		input_dir += 1.0
+		input_dir += 2.0
 	if Input.is_action_pressed("ui_left"):
-		input_dir -= 1.0
+		input_dir -= 2.0
 
 	if abs(input_dir) > 0.0:
 		apply_central_force(Vector2(input_dir * move_force, 0.0))
