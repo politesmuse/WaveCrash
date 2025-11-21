@@ -1,0 +1,28 @@
+[gd_scene load_steps=3 format=3 uid="uid://dxya62yd7w035"]
+
+[ext_resource type="Texture2D" uid="uid://buo65uiuqpml1" path="res://scripts/Dock1.png" id="1_1i8du"]
+[ext_resource type="Texture2D" uid="uid://b1yc8ib2rpru2" path="res://scripts/Rock2.png" id="2_1i8du"]
+
+[node name="Dock" type="Node2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1_1i8du")
+
+[node name="Rock2" type="Sprite2D" parent="."]
+z_index = -1
+position = Vector2(-289, -361)
+texture = ExtResource("2_1i8du")
+
+[node name="Rock3" type="Sprite2D" parent="."]
+position = Vector2(-528, -391)
+scale = Vector2(0.75, 1)
+texture = ExtResource("2_1i8du")
+
+[node name="Rock4" type="Sprite2D" parent="."]
+position = Vector2(-874, -353)
+texture = ExtResource("2_1i8du")
+
+[node name="Rock5" type="Sprite2D" parent="."]
+z_index = -3
+position = Vector2(-888, -1127)
+texture = ExtResource("2_1i8du")

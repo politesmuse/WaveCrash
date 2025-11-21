@@ -15,10 +15,10 @@ extends Node2D
 @export_range(0.0, 10.0, 0.1) var chop_freq: float = 2.5
 
 @export_category("Audio Mapping")
-@export_range(0.0, 5.0, 0.01) var bass_amp_boost: float = 2.0
-@export_range(0.0, 5.0, 0.01) var bass_speed_boost: float = 1.5
-@export_range(0.0, 5.0, 0.01) var mids_chop_boost: float = 1.5
-@export_range(0.0, 5.0, 0.01) var highs_ripple_boost: float = 1.0
+@export_range(0.0, 20.0, 0.01) var bass_amp_boost: float = 10.0
+@export_range(0.0, 20.0, 0.01) var bass_speed_boost: float = 15.0
+@export_range(0.0, 20.0, 0.01) var mids_chop_boost: float = 15.0
+@export_range(0.0, 20.0, 0.01) var highs_ripple_boost: float = 10.0
 
 # Internal scroll offsets for directional movement
 var _base_scroll_offset: float = 0.0
@@ -31,8 +31,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_time += delta
 
-	var bass: float = AudioReactive.bass
-	var mids: float = AudioReactive.mids
+	var bass: float = AudioReactive.bass * 5
+	var mids: float = AudioReactive.mids * 5
 
 	# Scroll speeds boosted by audio
 	var base_speed_now: float = base_scroll_speed * (1.0 + bass * bass_speed_boost)
@@ -44,15 +44,15 @@ func _process(delta: float) -> void:
 
 func get_wave_height_at_x(world_x: float) -> float:
 	# Scale down to avoid needing giant freq values
-	var x: float = world_x * 0.01
+	var x: float = world_x * 0.02
 
 	var bass: float = AudioReactive.bass
 	var mids: float = AudioReactive.mids
 	var highs: float = AudioReactive.highs
 
 	# Audio-reactive amplitudes
-	var amp_base: float = base_amp * (1.0 + bass * bass_amp_boost)
-	var amp_chop: float = chop_amp * (1.0 + mids * mids_chop_boost)
+	var amp_base: float = base_amp * (20.0 + bass * bass_amp_boost * 5)
+	var amp_chop: float = chop_amp * (20.0 + mids * mids_chop_boost * 1.5)
 
 	# Directional travel: use (x + scroll_offset)
 	var h_base: float = sin((x + _base_scroll_offset * 0.01) * base_freq * TAU) * amp_base

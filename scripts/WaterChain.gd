@@ -7,7 +7,7 @@ extends Node2D
 
 @export var buoy_mass: float = 1.0
 @export var wave_controller: Node2D
-@export var boat: Node2D  # NEW: boat to follow in X
+@export var boat: Node2D  
 
 @export_category("Buoy Physics")
 @export var buoy_spring_strength: float = 1200.0

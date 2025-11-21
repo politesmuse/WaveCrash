@@ -1,25 +1,34 @@
 shader_type canvas_item;
 
-// Audio-reactive inputs (set from GDScript)
+// Audio-Reactive Inputs
 uniform float u_bass  : hint_range(0.0, 5.0) = 0.0;
 uniform float u_mids  : hint_range(0.0, 5.0) = 0.0;
 uniform float u_highs : hint_range(0.0, 5.0) = 0.0;
 
-// Color controls
+// Color Controls
 uniform vec4 base_color      : source_color = vec4(0.1, 0.2, 0.6, 1.0);
 uniform vec4 highlight_color : source_color = vec4(0.6, 0.8, 1.2, 1.0);
 
-// Shimmer controls (already in your setup, kept simple here)
+// Shimmer Controls
 uniform float shimmer_strength : hint_range(0.0, 1.0, 0.01) = 0.15;
 
-// 🔹 New: normal / spec controls (these show as sliders)
+// Texture & Tiling
+uniform sampler2D water_tex : source_color, repeat_enable, filter_linear;
+uniform vec2 tex_scale = vec2(3.0, 3.0);
+uniform vec2 tex_scroll_speed = vec2(0.05, 0.0);
+
+// Glow
+uniform float glow_base = 0.8;
+uniform float glow_music_boost = 2.0;
+
+// Normal & Spec Controls
 uniform float normal_distort_base  : hint_range(0.0, 2.0, 0.01) = 0.4;
 uniform float mids_normal_boost    : hint_range(0.0, 3.0, 0.01) = 1.0;
 uniform float highs_normal_boost   : hint_range(0.0, 3.0, 0.01) = 1.5;
 uniform float specular_strength    : hint_range(0.0, 2.0, 0.01) = 0.7;
 uniform float specular_sharpness   : hint_range(1.0, 64.0, 1.0) = 16.0;
 
-// Simple hash/noise for micro waves
+// Simple Hash/Noise for Micro Waves
 float hash(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -68,9 +77,21 @@ void fragment() {
         + u_mids  * mids_normal_boost
         + u_highs * highs_normal_boost;
 
+	// Water Texture
+	vec2 tex_uv = vec2(suv.x, 1.0 - suv.y) * tex_scale + tex_scroll_speed * TIME;
+	vec3 tex_col = texture(water_tex, tex_uv).rgb;
+
     // Base gradient color for depth
     float depth_t = clamp(suv.y, 0.0, 1.0);
-    vec3 col = mix(base_color.rgb, highlight_color.rgb, depth_t);
+    vec3 grad_col = mix(base_color.rgb, highlight_color.rgb, depth_t);
+
+	// Shimmer from Highs
+    float shimmer = fbm(suv * 8.0 + vec2(TIME * 0.5, 0.0));
+    shimmer *= shimmer_strength * (0.3 + u_highs * 1.7);
+    grad_col += shimmer * 0.4;
+
+	// Combined Effects
+	vec3 col = grad_col * tex_col + shimmer;
 
     // ─── Fake normal from height field ───────────────────────
     // Sample a small neighborhood of the height field
@@ -105,10 +126,10 @@ void fragment() {
     col *= 0.4 + 0.6 * ndotl; // base diffuse
     col += vec3(spec);
 
-    // Optional shimmer add from highs (kept mild now, you can push it later)
-    float shimmer = fbm(suv * 8.0 + vec2(TIME * 0.5, 0.0));
-    shimmer *= shimmer_strength * (0.3 + u_highs * 1.7);
-    col += shimmer * 0.4;
+	// Audio Glow
+	float music_energy = max(max(u_bass, u_mids), u_highs);
+	float glow_factor = glow_base + music_energy * glow_music_boost;
+	col *= glow_factor;
 
     COLOR = vec4(col, 1.0);
 }
